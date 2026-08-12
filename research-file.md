@@ -57,3 +57,28 @@ An agent which identifies the cause of a CI pipeline failure and performs necess
 
 These communities will be used to gather human perspectives about CI failure diagnosis, including hidden failure causes, diagnostic actions, decision costs, evidence, and situations where human intervention may be necessary.
 
+## Root causes
+
+1. Code / application bug
+2. Test failure / flaky test
+3. Dependency problem
+4. CI environment / configuration problem
+5. Infrastructure problem
+6. External service failure
+
+
+## Diagnostic Actions
+
+A1: Inspect pipeline logs
+A2: Inspect failed pipeline stage
+A3: Compare with last successful run
+A4: Inspect recent code/test changes
+A5: Inspect dependency changes
+A6: Inspect CI/environment configuration
+A7: Search previous incidents/runbooks
+A8: Reproduce the failure
+A9: Ask a human
+A10: Stop and report 
+
+
+
