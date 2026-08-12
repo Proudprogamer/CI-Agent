@@ -21,6 +21,10 @@ This file records public discussions related to the CI Diagnosis Agent. Human re
 
 | X | ADD ACCOUNT/POST | (https://x.com/JanhaviTechAWS/status/2087440229435318368) | Asked about the use of direct-to-main development and how the harness handles unexpected CI or production failures. | Respondent said that logs and failure type mainly guide the next step. They check the failed stage first, then use logs/error patterns to narrow the problem to code, tests, dependencies, or infrastructure. Previous incidents and runbooks are also used to confirm the root cause. | — | Historical incidents/runbooks should be available as supporting evidence when selecting and validating a diagnosis. They should influence belief rather than determine the diagnosis automatically. |
 
+
+| X | Direct Message | Practitioner        | ADD LINK / DM reference | Asked how they diagnose a CI/CD failure when there are multiple possible root causes and how they decide what to investigate next. | They first identify the failed CI stage. If the build failed, they check whether the local TypeScript build succeeds, then investigate recent dependency, configuration, Docker image, and architectural changes. If those checks do not explain the failure, they remove cached Docker layers and rebuild, then investigate the hosting provider and server state. They noted that sometimes the exact root cause remains unknown even after narrowing down where the system is stuck. They recommended prioritizing diagnostic checks with the highest expected hit ratio. | —         | **New policy insight:** Diagnostic actions should depend on the failed stage and context rather than follow one fixed sequence. Actions can be prioritized by their expected likelihood of identifying the cause. **New failure condition:** The agent may be able to localize the failure to a subsystem without identifying the exact root cause. **Potential action:** Escalate or request deeper infrastructure evidence when CI-level evidence is insufficient. |
+
+
 ## Current Findings**
 
 **### Finding 1 — Failure location is useful evidence**
@@ -57,6 +61,14 @@ This supports the idea that the agent should iteratively gather evidence rather 
 The X response also stated that production-impacting failures may require following a rollback plan.
 
 This suggests that the cost or severity of a failure may affect the agent's policy. However, this has not yet been tested and should remain a hypothesis until the agent design and experiment are developed.
+
+**### Finding 5 — Diagnostic actions should depend on context**
+
+Diagnostic actions should depend on the failed CI stage and context. A practitioner described checking the local build first when the build stage fails, then checking dependency changes, configuration changes, Docker image/architecture changes, and eventually the hosting environment. This suggests that the agent should not use one fixed debugging sequence for every CI failure.
+
+**###Finding 6 — Diagnosis can stop at subsystem localization**
+
+The practitioner noted that sometimes the exact root cause cannot be identified, but the engineer can still determine where the system is stuck. This suggests that the agent should not be forced to produce a specific root cause when the available evidence is insufficient. It should be able to report uncertainty and escalate.
 
 **## Background Observations**
 

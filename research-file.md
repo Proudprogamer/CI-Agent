@@ -69,16 +69,138 @@ These communities will be used to gather human perspectives about CI failure dia
 
 ## Diagnostic Actions
 
-A1: Inspect pipeline logs
-A2: Inspect failed pipeline stage
-A3: Compare with last successful run
-A4: Inspect recent code/test changes
-A5: Inspect dependency changes
-A6: Inspect CI/environment configuration
-A7: Search previous incidents/runbooks
-A8: Reproduce the failure
-A9: Ask a human
-A10: Stop and report 
+Inspect pipeline logs
+Inspect failed pipeline stage
+Compare with last successful run
+Inspect recent code/test changes
+Inspect dependency changes
+Inspect CI/environment configuration
+Search previous incidents/runbooks
+Ask a human
+Stop and report 
+Compare local build with CI build
+Check Docker image/architecture changes
+Rebuild without cached Docker layers
+Inspect hosting environment
+Inspect server/session state
+Potentially inspect the machine directly
+
+Potential environment-level diagnostics: When CI-level evidence is insufficient, the agent may need access to deeper infrastructure diagnostics. The exact permissions and tools available to the agent will be determined during architecture design.
+
+
+## Observations 
+
+| Observation                                          | What it might suggest                          |
+| -----------------------------------------------------| ---------------------------------------------- |
+| Failure occurs during unit tests                     | Code bug / flaky test                          |
+| Failure occurs during dependency installation        | Dependency problem                             |
+| Same code passes locally but fails in CI             | Environment/config or flaky test               |
+| Failure occurs only intermittently                   | Flaky test / external service / infrastructure |
+| GitHub runner unavailable                            | Infrastructure                                 |
+| External API times out                               | External service                               |
+| Same failure happened before                         | Historical evidence for the previous diagnosis |
+| Local build fails when CI build fails                | Code/build configuration problem               |
+| Dependency changed compared with previous deployment | Dependency-related regression                  |
+| CI/config changed recently                           | Configuration problem                          |
+| Docker image/architecture changed                    | Container or architecture issue                |
+| Rebuilding without cached Docker layers fixes it     | Stale/corrupted Docker cache                   |
+| Hosting/server session behaves abnormally            | Infrastructure/host issue                      |
+| Instance repeatedly reboots                          | Host/infrastructure failure                    |
 
 
 
+Prior:
+Our belief about each possible root cause before observing new evidence.
+
+Likelihood:
+How likely a particular observation would be if a particular root cause were actually true.
+
+Posterior:
+Our updated belief about each root cause after incorporating the observation.
+
+The agent repeatedly updates its beliefs as it gathers new evidence.
+
+
+Initial beliefs (priors) will initially be estimated from the historical CI failure dataset rather than arbitrarily assigned. A uniform-prior baseline may also be evaluated for comparison.
+
+
+## likelihood
+
+| Observation                | Code bug | Flaky test | Dependency | Env/config |     Infra | External service |
+| -------------------------- | -------: | ---------: | ---------: | ---------: | --------: | ---------------: |
+| Unit test failure          |     High |       High |     Medium |        Low |       Low |              Low |
+| Dependency install failure |      Low |        Low |       High |     Medium |    Medium |              Low |
+| Runner unavailable         | Very low |   Very low |   Very low |        Low | Very high |              Low |
+| External API timeout       |      Low |     Medium |        Low |     Medium |    Medium |        Very high |
+
+
+-The actual probability values are not yet assigned at this point, and they're only termed as Very High/High/Medium/Low/Very Low
+
+-Likelihoods will primarily be estimated from the historical CI failure dataset where sufficient examples exist. Sparse categories will require smoothing, grouping, or another justified fallback rather than treating small-sample frequencies as reliable probabilities.
+
+## Diagnostic Actions and Cost
+
+-Inspect pipeline logs
+Estimated Cost : Low
+Gives error messages, can help localize the errors since logs give a detail on which part failed and helps keep track of the execution timeline if we have logs in place at each part of the code
+
+-Inspect failed pipeline stage
+Estimated Cost : Medium ( In terms of the time which an engineer spends on inspecting the pipeline)
+A pipeline has different stages like build, test, debug etc, so identifying the exact part where the pipeline failed can help us get to the error faster and will save alot of time.
+
+-Compare with last successful run
+Estimated Cost : Medium ( In terms of the time which an engineer spends on inspecting the pipeline)
+Mostly in times where there isn't enough evidence, comparing with the last successfull run might reveal alot of things about where the pipeline might have failed, for ex If the dependencies haven't changed, this provides evidence against a dependency-change-related cause, but it does not completely eliminate dependency problems.
+
+-Inspect recent code/test changes
+Estimated Cost : Low ( Easier for an engineer to inspect their recent changes since they are aware of what changes they made, or what changes a new commit has)
+its easier to inspect the recent changes since those changes could most probably be the reason for the pipeline failure, helps identify flaky tests or code errors or parts of code which is dependent on an external service
+
+-Inspect dependency changes
+Estimated Cost : Low
+dependencies can be inspected with the last versions, and any dependency errors like wrong dependencies or wrong version numbers can easy be fixed by comparing
+
+-Inspect CI/environment configuration
+Estimated Cost : Medium to High ( inspecting the environment and the configuration is a time taking process and making changes to the config is not an easy task and must be done without any errors and it is a task within itself)
+sometimes it could be possible that the configuration of the pipeline or the environment is wrong, maybe the env doesn't support a dependency or a service, or maybe the config must be handling something wrong
+
+-Search previous incidents/runbooks
+Estimated Cost : Low
+similar incidents which have occured in the past can be searched and if the errors are similar then the root cause can be analyzed quicker
+
+-Ask a human
+Estimated Cost : Medium to High ( Can be time consuming, and usually requires waiting till the human responsd)
+asking a human could answer alot of questions since they are aware of the architecture and the behaviour of the code, and since they can do the things which are not accesible by the agent
+
+-Report and Escalate
+Estimated Cost : Low
+in cases where the agent is not able to find the cause or not able to take an action, its better to stop and report to a human rather than iterating over the error over and over again
+
+-Compare local build with CI build
+Estimated Cost : Low
+A difference between the local and CI builds can help distinguish code-related problems from CI/environment-specific problems.
+
+-Check Docker image/architecture changes
+Estimated Cost : Low to Medium
+the failure could occur due to a false docker image and hence changes the point of action drastically, we might want to analyze the docker service
+
+-Rebuild without cached Docker layers
+Estimated Cost : Low
+when cached docker images produce a failure, it could solve that issue, If stale or incorrect cached layers are suspected, rebuilding without the cache can test whether the cache is contributing to the failure. 
+
+-Inspect hosting environment
+Estimated Cost : Medium
+when the other actions are all relavent, then inspecting the hosting environment is a good choice because it provides insights on the speed and the capabilities of the environment, maybe the environment needs an upgrade or maybe it isn't able to handle new code
+
+-Inspect server/session state
+Estimated Cost : Low to Medium
+gives insights on the server session times, if the server times out then the probable cause is to increase the timeout speed or better state management
+
+
+## Diagnostic Policy
+
+Action prioritization: Diagnostic actions should be ordered according to the context of the failure and their expected usefulness ("hit ratio"), rather than being executed in a fixed order. The failed pipeline stage should first narrow the set of relevant actions.
+
+## Failure Conditions
+
+The agent may be able to localize a failure without identifying its exact root cause.
