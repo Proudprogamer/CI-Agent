@@ -201,6 +201,101 @@ gives insights on the server session times, if the server times out then the pro
 
 Action prioritization: Diagnostic actions should be ordered according to the context of the failure and their expected usefulness ("hit ratio"), rather than being executed in a fixed order. The failed pipeline stage should first narrow the set of relevant actions.
 
+-How should the agent decide which diagnostic action to take next?
+
+At any point of time, the agent has the following : 
+1.failure
+2.prior probabilities
+3.likelihood model
+4.evidence ( it may or may not have evidence )
+5.posterior probabilities ( depending upon the baseline the agent has in case there is no evidence)
+
+since the agent has a bunch of diagnostic actions it can take, depending upon the failure, we can narrow down the possible set of diagnostic actions which our agent can take, for ex - if we could identify from the logs that it is a dependency related issue then it is more likely that its related to the actions: a. check dependencies with last green run, b. check CI config and environment, etc; the agent can also look at historic data to see which kind of actions have helped when a similar kind of error occured.
+
+in case the agent is not able to narrow down to a set of actions, then it can use the historic evidence to find out what kind of actions have worked for this kind of failure in the past
+
+once the agent has narrowed down the set of diagnostic actions which are suitable for the current failure, now the agent chooses one action with the highest hit ratio, the one which gives us the maximum information at ideally a low cost; just because an action might give us more clarity, we cannot choose it if it is high cost, we have to keep the cost in mind and choose the one with low cost and best information for its cost.
+
+after performing a set of action and getting the feedback ,the agent should be able to narrow down the root causes of the failure, and if it isn't able to narrow it down and if the uncertainity is still high( when it doesn't have the right evidence ) then it should escalate to a human rather than iterating over and over again.
+
+
 ## Failure Conditions
 
 The agent may be able to localize a failure without identifying its exact root cause.
+
+
+
+## Agent Architecture 
+
+### VERSION 1
+
+-Our agent consists of 6 main components which are
+        CI Failure
+            ↓
+        Evidence Collector
+            ↓
+        Belief Engine
+            ↓
+        Diagnostic Policy
+            ↓
+        Diagnostic Actions
+            ↓
+            ↓
+        Feedback
+            ↺
+        Belief Engine
+
+            ↓
+       Human Escalation
+
+- Evidence Collector : This component collects evidences from the failed pipeline, it inspects the logs and previous historic data to find out what could be the probable cause, this is a very crucial component as it sets the context for the rest of the agent.
+
+- Belief Engine : This is the probabilistic model of the agent, the agent assigns probabilities to the possible set of causes based on the evidence it receives, the diagnostic actions depend upon this engine as this gives us a set of highliy probable causes for the agent to inspect further
+
+-Diagnostic Policy - this is the part which defines the set of rules on what action is to be done among all the possible set of actions, it has rules for deciding which action has more information for the given cost, and it tries to choose an action which has the highest ratio of information gain with respect to the price, very crucial step because it helps narrow down the actions by choosing the most useful action.
+
+-Diagnostic Actions - the set of actions with ranking according to their usefulness, the agent can perform these actions.
+
+-Feedback - after the agent performs an action ,the result of the action is considered as feedback, and this feedback is fed into the belief engine in order to update probabilities based on the feedback, this is also very crucial as it helps narraow down the set of possible causes of the failure.
+
+-Human Escalation - Even after performing a set of actions and using feedbacks, if there is still high uncertainity about the root cause, then the agent escalates the problem for a human evaluation since multiple iterations have not helped in reducing the uncertainity and further actions also result in high uncertainity
+
+
+Now lets see where the LLM fits in our architecture in Version 2.
+
+
+### VERSION 2 - With LLM
+
+        CI failure
+            ↓
+        Evidence Collector
+            ↓
+           LLM
+            ↓
+        Structured evidence
+            ↓
+        Belief Engine
+            ↓
+        Diagnostic Policy
+            ↓
+        Diagnostic Action
+            ↓
+        Feedback
+            ↺
+
+
+| Component             | Responsibility                        |
+| --------------------- | ------------------------------------- |
+| **LLM**               | Interpret messy/unstructured evidence |
+| **Belief Engine**     | Maintain/update probabilities         |
+| **Diagnostic Policy** | Decide the best next action           |
+| **Diagnostic Tools**  | Execute the action                    |
+| **Feedback**          | Return the action's result            |
+
+
+Note - i dont want the LLM to tell me -"The root cause is xyz because i identified abc in the logs", i want the LLM to structure the logs so that our agent can analyze it better, we already have the bayesian network to give us the probabilities, we dont want the root cause from the LLM
+
+
+
+
+
