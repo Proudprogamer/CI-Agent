@@ -379,3 +379,128 @@ C = conditional; depends on the specific observation
 | **External-service error/timeout evidence** |     →    |         ↑         |      ↑     |      ↑      |        ↑       |        ↑↑        |
 
 
+### Prior Probability Strategy
+
+Prior probability strategy: Use contextual priors rather than one generic prior. The context for the prior should come from information available before analyzing the current failure's diagnostic evidence, such as the type of pipeline/stage and historical failure distributions.
+
+Historical evidence: Historical CI failure data should be used to estimate the prior probabilities and potentially stage-specific priors.
+
+Current failure logs: Information extracted from the current failure logs should not set the prior. It becomes evidence that is used by the likelihood model to update the prior into posterior probabilities.
+
+Numerical values: Ideally derive them from labeled historical CI failure data rather than arbitrarily choosing percentages.
+
+Comparison: We should test multiple prior strategies—such as a generic prior, stage-specific prior, and empirically derived prior—to determine how sensitive diagnostic performance is to the choice of prior.
+
+
+### Prior Strategies
+
+1. Uniform prior
+   Equal probability assigned to every hidden state.
+   Used as a simple baseline.
+
+2. Global empirical prior
+   Probabilities estimated from the overall distribution of historical
+   CI failure causes.
+
+3. Stage-specific empirical prior
+   Probabilities estimated separately for each pipeline failure stage.
+   The failed stage determines which prior distribution is used.
+
+### Prior Strategy Comparison
+
+We will compare the three prior strategies to determine whether
+context-specific historical priors improve diagnostic performance
+over a uniform or global prior.
+
+
+
+## Dataset Evaluation
+
+V1 uses a strict label-mapping strategy. Only dataset categories that can be mapped clearly to the predefined hidden states are included in the quantitative experiment. This results in 305 usable cases out of 375. Categories involving quality checks, vulnerabilities, network failures, version control, GitHub-specific limitations, unresolved actions, and performance degradation are excluded from V1 because they do not map cleanly to the current state space.
+
+Although Infrastructure and External Service have valid mappings, each contains only two cases in the resulting dataset. Therefore, these states are considered data-sparse and will not be used for reliable quantitative probability estimation in V1. The primary quantitative experiment will focus on Code, Test/Flaky Test, Dependency, and CI/Configuration. Infrastructure and External Service remain part of the conceptual architecture and may be evaluated in a future expanded dataset.
+
+### Dataset: replication-labeling.xlsx
+
+The dataset contains 375 labeled CI failure jobs. It provides root-cause descriptions, sub-categories, broader categories, pipeline steps, and associated actions/scripts.
+
+The dataset appears suitable for the project because it provides labeled CI failures that can potentially be mapped to the hidden states used by the Bayesian diagnosis model.
+
+However, the dataset's 16 sub-categories do not map perfectly to our initial six hidden states. Categories such as quality-check failures, security/vulnerability failures, performance degradation, network issues, GitHub API limits, and third-party service failures require further analysis before deciding whether they should be mapped to an existing state, treated as separate states, or excluded from the first experiment.
+
+### Dataset: replication-surveyAnswers.xlsx
+
+The survey contains 152 engineer responses concerning the frequency and experience of different CI failure categories.
+
+The survey will be treated as supporting human evidence rather than direct ground-truth frequency data. Reported frequency of experiencing a failure type cannot directly be interpreted as the actual proportion of CI failures caused by that category.
+
+### Dataset Decision
+
+The labeling dataset will be evaluated as the primary dataset for estimating the Bayesian model's priors and likelihoods. Before assigning probabilities, the failure categories will be mapped to the model's hidden states and the number of usable examples in each state will be calculated.
+
+No probabilities will be assigned until this mapping has been completed.
+
+
+### V1 Empirical Prior
+
+After applying the strict hidden-state mapping, 305 of the 375 labeled
+failure cases were retained for the quantitative experiment.
+
+The empirical prior was calculated from the frequency of each retained
+hidden state:
+
+| Hidden state      |   Cases | Empirical prior |
+| ----------------- | ------: | --------------: |
+| Code bug          |      54 |      **17.70%** |
+| Test / flaky test |     120 |      **39.34%** |
+| Dependency        |      91 |      **29.84%** |
+| CI / Config       |      40 |      **13.11%** |
+| **Total**         | **305** |        **100%** |
+
+
+These probabilities represent the distribution of root causes within
+the included subset of the replication dataset and should not be
+interpreted as universal CI failure probabilities.
+
+
+### Stage Mapping
+
+The dataset does not provide a standardized pipeline-stage field.
+Therefore, V1 derives stages from the pipeline step names using
+high-confidence mappings.
+
+Steps explicitly associated with build, test, setup/dependency,
+quality/analysis, or deployment/publishing are assigned to the
+corresponding stage.
+
+Steps containing multiple activities or ambiguous terminology are
+classified as multi-stage/ambiguous and are excluded from the
+stage-specific prior calculation rather than being assigned
+arbitrarily.
+
+The resulting stage × hidden-state distribution will be inspected
+for sufficient sample sizes before stage-specific priors are used.
+
+### Stage-Specific Prior Analysis
+
+The dataset does not provide a standardized pipeline-stage label, so
+high-confidence stages were derived from pipeline step names. Ambiguous
+and unknown steps were excluded from the stage-specific prior analysis.
+
+Among the four V1 hidden states, the resulting high-confidence
+stage/root-cause counts were:
+
+- Build: 113 cases
+- Test: 100 cases
+- Setup/Dependency: 30 cases
+- Quality/Analysis: 9 cases
+- Deploy/Publish: 7 cases
+
+Build and Test contain sufficient examples to support stage-specific
+prior estimation. Quality/Analysis and Deploy/Publish are too sparse
+for reliable stage-specific priors.
+
+The V1 experiment will therefore compare the global empirical prior
+against stage-specific priors for Build and Test failures. A global
+prior will serve as the fallback when a sufficiently supported
+stage-specific prior is unavailable.
