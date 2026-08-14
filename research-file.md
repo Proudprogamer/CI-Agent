@@ -297,5 +297,85 @@ Note - i dont want the LLM to tell me -"The root cause is xyz because i identifi
 
 
 
+### Research Question
+
+This CI Agent analyses the root cause of a CI pipeline failure by analysing the most probable causes depending upon the evidence it receives; the agent chooses an action based on the type of failure and the highly suggested causes by comparing the failure with historic evidence. Every action depends on a context rather than a fixed set of instructions.
+
+
+### Hidden States
+
+
+1. Code bug :
+  Why is it a distinct state : This state depends on the changes in code which could have caused the failure, and this is a good base point to start our agent's investigation, and this state could give us more certainty about where the error could lie, because if the error is not in the code, then most probably(there is still probability that the error is with the code ) the error is with something else like a flaky test or dependencies, etc.
+
+2. Test failure / flaky test : 
+  Why is it a distinct state : flaky tests can help recude the uncertainty by a big factor since are actions will be narrowed down to mostly around tests.
+
+3. Dependency issue : 
+  Why is it a distinct state : dependency issues could be because of newer versions in the dependencies, and they are different from code bugs, because we never know when dependency issues could happen, a dependency could be depricated or removed, etc, hence these issues also help us narrow down our search space
+
+4. CI/environment configuration :
+  Why is it a distinct state : Sometimes the CI environment like github actions or jenkins could have the wrong configuration which does not support your current version of the code, maybe hardware config or other sorts of config, and this issue can help narrow down the space by lot ,because now our search space mostly shifts to the cloud platform, but config issues can occur locally aswell when we change a config in the code which is not suitable for our pipeline.
+
+5. Infrastructure : 
+  Why is it a distinct state : these issues could relate to Docker files and docker images, and also server level issues, it helps narrow down the actions to docker level actions and Cloud provider actions which could be more probable than others.
+
+6. External service : 
+  Why is it a distinct state : External services include the api's we use in our codebase, or maybe database services which we use, these external services could have their downtime which could cause us the error, so the most probable actions would be inspecting the code and adding logs where the external service is called, and we could also check if they have a downtime going on or not, this could still relate to the config error, if the db urls are not whitelisted with the provider, etc, etc
+
+
+### Observable Evidence 
+
+Failed pipeline stage - Identifies at what stage the failure occured and helps narrow down the actions to that particular stage.
+
+Pipeline logs / error messages - Identifies at which exact part the pipeline failed.
+
+Test results - helps identify the results of every test and helps the agent understand which test went wrong
+
+Recent code/test changes - helps the agent compare the code to the previous code and check if any new changes caused the failure, and helps increase/decrease the certainty of a code error
+
+Dependency changes - helps the agent identify if the dependencies have an error, maybe the existing dependencies got depricated, or maybe the version number was wrong, helps narrow down to dependency checks and environment checks.
+
+CI/environment configuration changes - sometimes the pipeline config could be the reason, maybe the config does not support a particular dependency or maybe an external service timed out, etc, or maybe if there are config differences in the local env and in the pipeline config
+
+Difference from the last successful run - helps directly compare the config, code, dependencies, tests, with the last sucessfull run and helps narrow down the possible cause 
+
+Local build result vs CI build result - if the local build passes and CI build fails, maybe there could be a config error or maybe docker error
+
+Docker image/cache changes - helps identify if the docker file has a problem, maybe the docker file could be referring to an old package.json file which could not be present in the lastest commit, or maybe the docker cached images could cause the problem so the images can be rebuilt
+
+Previous similar incidents / runbooks - helps the diagnostic policy decide while choosing an action, if there was a prior similar kind of error, then the decision making could rank the possible actions to be taken
+
+Hosting/infrastructure information - the cloud provider could run into a problem, maybe the cloud is down, etc.
+
+Server/session state - the server could be occupied with another service which might not be configured properly and could effect the pipeline, or maybe the server does not have enough hardware to run the new commits, etc
+
+
+
+### Evidence → Hidden State Relationships (Qualitative evidence-state hypotheses)
+
+↑↑ strongly increases likelihood
+↑ moderately increases likelihood
+→ little/no direct evidence
+↓ decreases likelihood
+↓↓ strongly decreases likelihood
+C = conditional; depends on the specific observation
+
+
+| Observable Evidence                         | Code Bug | Test / Flaky Test | Dependency | CI / Config | Infrastructure | External Service |
+| ------------------------------------------- | :------: | :---------------: | :--------: | :---------: | :------------: | :--------------: |
+| **Failed pipeline stage**                   |     C    |         C         |      C     |      C      |        C       |         C        |
+| **Pipeline logs / error messages**          |     C    |         C         |      C     |      C      |        C       |         C        |
+| **Test results**                            |     ↑    |         ↑↑        |      ↑     |      →      |        ↑       |         ↑        |
+| **Recent code/test changes**                |    ↑↑    |         ↑↑        |      C     |      C      |        →       |         ↑        |
+| **Dependency changes**                      |     ↑    |         →         |     ↑↑     |      ↑      |        →       |         ↑        |
+| **CI/environment configuration changes**    |     ↑    |         ↑         |      ↑     |      ↑↑     |       ↑↑       |         ↑        |
+| **Difference from last successful run**     |     C    |         C         |      C     |      C      |        C       |         C        |
+| **Local build succeeds, CI fails**          |     ↓    |         ↑         |      ↑     |      ↑↑     |       ↑↑       |         ↑        |
+| **Docker image/cache changes**              |     C    |         C         |      ↑     |      ↑↑     |       ↑↑       |         →        |
+| **Previous similar incidents / runbooks**   |     C    |         C         |      C     |      C      |        C       |         C        |
+| **Hosting / infrastructure information**    |     →    |         ↑         |      →     |      ↑      |       ↑↑       |         ↑        |
+| **Server / session state**                  |     →    |         ↑         |      →     |      ↑      |       ↑↑       |         ↑        |
+| **External-service error/timeout evidence** |     →    |         ↑         |      ↑     |      ↑      |        ↑       |        ↑↑        |
 
 

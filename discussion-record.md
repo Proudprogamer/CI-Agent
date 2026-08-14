@@ -25,6 +25,9 @@ This file records public discussions related to the CI Diagnosis Agent. Human re
 | X | Direct Message | Practitioner        | ADD LINK / DM reference | Asked how they diagnose a CI/CD failure when there are multiple possible root causes and how they decide what to investigate next. | They first identify the failed CI stage. If the build failed, they check whether the local TypeScript build succeeds, then investigate recent dependency, configuration, Docker image, and architectural changes. If those checks do not explain the failure, they remove cached Docker layers and rebuild, then investigate the hosting provider and server state. They noted that sometimes the exact root cause remains unknown even after narrowing down where the system is stuck. They recommended prioritizing diagnostic checks with the highest expected hit ratio. | —         | **New policy insight:** Diagnostic actions should depend on the failed stage and context rather than follow one fixed sequence. Actions can be prioritized by their expected likelihood of identifying the cause. **New failure condition:** The agent may be able to localize the failure to a subsystem without identifying the exact root cause. **Potential action:** Escalate or request deeper infrastructure evidence when CI-level evidence is insufficient. |
 
 
+| Architecture Review | External reviewer | ADD LINK / reference | Shared the Excalidraw architecture of the CI Diagnosis Agent and asked for feedback. | Reviewer said the Excalidraw architecture was clearly explained and that they liked the presentation. They did not identify any immediate architectural issue. They suggested that the eventual work should be compiled into a single polished LaTeX paper, potentially using an IJCAI-style two-column format, with the sources and findings consolidated and published online. |
+
+
 ## Current Findings**
 
 **### Finding 1 — Failure location is useful evidence**
@@ -66,9 +69,14 @@ This suggests that the cost or severity of a failure may affect the agent's poli
 
 Diagnostic actions should depend on the failed CI stage and context. A practitioner described checking the local build first when the build stage fails, then checking dependency changes, configuration changes, Docker image/architecture changes, and eventually the hosting environment. This suggests that the agent should not use one fixed debugging sequence for every CI failure.
 
-**###Finding 6 — Diagnosis can stop at subsystem localization**
+**### Finding 6 — Diagnosis can stop at subsystem localization**
 
 The practitioner noted that sometimes the exact root cause cannot be identified, but the engineer can still determine where the system is stuck. This suggests that the agent should not be forced to produce a specific root cause when the available evidence is insufficient. It should be able to report uncertainty and escalate.
+
+**### Finding 7 — Architecture review**
+
+An external reviewer found the Excalidraw architecture clearly explained and did not identify an immediate architectural problem. This provides some initial external validation that the high-level architecture is understandable, although it does not establish that the architecture is technically correct.
+
 
 **## Background Observations**
 
