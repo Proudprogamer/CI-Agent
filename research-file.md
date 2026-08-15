@@ -504,3 +504,124 @@ The V1 experiment will therefore compare the global empirical prior
 against stage-specific priors for Build and Test failures. A global
 prior will serve as the fallback when a sufficiently supported
 stage-specific prior is unavailable.
+
+
+
+### Likelihood Model
+
+The V1 model represents `failed_stage` as a single categorical
+observable variable.
+
+The possible values are:
+
+- Build
+- Test
+- Setup / Dependency
+- Quality / Analysis
+- Deploy / Publish
+- Ambiguous
+- Unknown
+
+Ambiguous and Unknown are retained as valid evidence categories rather
+than being removed from the likelihood calculation. This prevents the
+model from assuming that the failed stage will always be identifiable.
+
+For each hidden state, the likelihood is estimated as:
+
+P(failed_stage | hidden_state)
+
+using the labeled dataset.
+
+The resulting likelihood distribution is:
+
+| Root cause ↓ / Failed stage → | Build |  Test | Setup | Quality | Deploy | Ambiguous | Unknown |
+| ----------------------------- | ----: | ----: | ----: | ------: | -----: | --------: | ------: |
+| **Code**                      | 57.4% | 18.5% |  7.4% |    1.9% |     0% |      7.4% |    7.4% |
+| **Test**                      | 35.8% | 53.3% |    0% |    5.8% |     0% |      3.3% |    1.7% |
+| **Dependency**                | 42.9% | 13.2% | 17.6% |    5.5% |   3.3% |      7.7% |    9.9% |
+| **CI / Config**               | 27.5% | 10.0% | 12.5% |    5.0% |   5.0% |     15.0% |   25.0% |
+
+
+These likelihoods are empirical estimates derived from the labeled
+dataset and should not be interpreted as universal CI failure
+statistics.
+
+### Decision: Retain Ambiguous and Unknown Stages
+
+Ambiguous and Unknown stage classifications are retained in the
+likelihood model because they represent valid observations that the
+diagnostic agent may encounter. Removing them would artificially
+increase the apparent certainty of the stage evidence and discard
+information from the dataset.
+
+
+### Bayesian Model Sanity Check
+
+Let us try to calculate the posterior probability with what we currently have
+ 
+Prior : 
+| Root cause |  Prior |
+| ---------- | -----: |
+| Code       | 17.70% |
+| Test       | 39.34% |
+| Dependency | 29.84% |
+| CI/Config  | 13.11% |
+
+Observed evidence : failed_stage = Build
+
+Likelihoods : 
+| Root cause | `P(Build \| cause)` |
+| ---------- | ------------------: |
+| Code       |               57.4% |
+| Test       |               35.8% |
+| Dependency |               42.9% |
+| CI/Config  |               27.5% |
+
+
+Bayesian updating is done using this formula : prior x likelihood 
+
+Code:
+0.1770 × 0.574 = 0.1016
+
+Test:
+0.3934 × 0.358 = 0.1408
+
+Dependency:
+0.2984 × 0.429 = 0.1280
+
+CI/Config:
+0.1311 × 0.275 = 0.0360
+
+now we normalize and then calculate posterior probabilities 
+
+Posterior probabilities : 
+| Root cause     | Posterior after `Build` |
+| -------------- | ----------------------: |
+| **Code**       |               **25.0%** |
+| **Test**       |               **34.6%** |
+| **Dependency** |               **31.5%** |
+| **CI/Config**  |                **8.9%** |
+
+
+As we can clearly observe, after the evidence arrived, our probabilities have changed to :
+
+Test        34.6%  ↓
+Dependency  31.5%  ↑
+Code        25.0%  ↑
+CI/Config    8.9%  ↓
+
+Although we could not reduce or increase probabilities by a major factor but now the policy will be able to choose the action based on the probability ranking
+
+This is a very high level sanity check since we're only using the failure stage as the evidence variable, future versions of our agent will have multiple evidence variables with a proper structure.
+
+
+
+### V1 Bayesian Model Scope
+
+For the initial quantitative experiment, the model will use
+`failed_stage` as the primary observable evidence variable because
+this is the evidence that can be reliably derived from the available
+dataset.
+
+Additional evidence variables will be incorporated in future versions
+when datasets containing those observations are available.
