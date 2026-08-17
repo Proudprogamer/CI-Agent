@@ -616,7 +616,7 @@ This is a very high level sanity check since we're only using the failure stage 
 
 
 
-### V1 Bayesian Model Scope
+### V1 Bayesian Model Scope 
 
 For the initial quantitative experiment, the model will use
 `failed_stage` as the primary observable evidence variable because
@@ -625,3 +625,25 @@ dataset.
 
 Additional evidence variables will be incorporated in future versions
 when datasets containing those observations are available.
+
+### V1 Evidence Model Scope
+
+Using only the failed pipeline stage as evidence is insufficient for
+the intended diagnostic agent because the stage provides coarse
+localization but does not provide enough information to distinguish
+between multiple plausible root causes.
+
+The failed stage will therefore remain as the first empirically
+validated evidence variable, but the final agent will incorporate
+additional evidence variables such as structured error patterns,
+test results, dependency changes, configuration changes, comparisons
+with previous successful runs, local-vs-CI results, Docker changes,
+and infrastructure signals.
+
+The current dataset does not contain sufficient information to
+estimate likelihoods for most of these variables. Additional data
+sources will therefore be investigated before finalizing the
+Bayesian network and its likelihood parameters.
+
+Dataset limitation and evaluation strategy:
+No single publicly available dataset was identified that provides all required observable evidence variables together with reliable root-cause labels. The available replication dataset provides sufficient labeled failures to empirically estimate the initial prior and failed-stage likelihood model, but does not contain raw logs, change history, dependency changes, Docker state, or infrastructure state. Rather than forcing unrelated datasets into a single model, the project will use the labeled dataset for empirically grounded components and construct controlled diagnostic scenarios from real failure cases to evaluate richer evidence variables and the diagnostic policy. Synthetic evidence will be explicitly distinguished from observations directly obtained from the dataset.
