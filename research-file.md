@@ -647,3 +647,33 @@ Bayesian network and its likelihood parameters.
 
 Dataset limitation and evaluation strategy:
 No single publicly available dataset was identified that provides all required observable evidence variables together with reliable root-cause labels. The available replication dataset provides sufficient labeled failures to empirically estimate the initial prior and failed-stage likelihood model, but does not contain raw logs, change history, dependency changes, Docker state, or infrastructure state. Rather than forcing unrelated datasets into a single model, the project will use the labeled dataset for empirically grounded components and construct controlled diagnostic scenarios from real failure cases to evaluate richer evidence variables and the diagnostic policy. Synthetic evidence will be explicitly distinguished from observations directly obtained from the dataset.
+
+
+
+### Policy under incomplete EIG information
+
+The diagnostic policy ranks relevant actions based on their expected
+information gain relative to their diagnostic cost.
+
+When sufficient historical data is available to estimate the EIG of an
+action, the action is ranked using:
+
+Score(action) = EIG(action) / Cost(action)
+
+When sufficient historical data is not available to estimate the EIG of
+an action, the action is not discarded. Instead, the policy ranks such
+actions according to their cost, preferring lower-cost actions first.
+
+This is appropriate for the current CI/CD setting because the primary
+cost represents diagnostic time and effort rather than a fixed monetary
+budget. A low-cost action with unknown information value can therefore
+be investigated with relatively low downside, while a high-cost action
+with unknown information value represents a greater risk of wasting
+diagnostic effort.
+
+The absence of an EIG estimate does not affect the stopping criterion.
+The stopping criterion is based on the resulting belief/uncertainty
+after diagnostic actions have been considered and their feedback has
+been incorporated. If sufficient confidence is not achieved after the
+useful available diagnostic actions have been exhausted, the case is
+escalated to a human.
