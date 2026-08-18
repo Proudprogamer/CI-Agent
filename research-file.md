@@ -677,3 +677,8 @@ after diagnostic actions have been considered and their feedback has
 been incorporated. If sufficient confidence is not achieved after the
 useful available diagnostic actions have been exhausted, the case is
 escalated to a human.
+
+
+## Dataset for evaluation of the V1 Agent
+
+The dataset does not directly record diagnostic action outcomes. Therefore, P(o∣H,E,a) was estimated using action-specific observable proxies derived from historical step and sub-category fields. Actions with weak proxies (e.g. comparison with a successful run, server/session state) have lower evidential validity. These probabilities are used for simulation, not claimed as directly observed action outcomes.
