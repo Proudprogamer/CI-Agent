@@ -682,3 +682,73 @@ escalated to a human.
 ## Dataset for evaluation of the V1 Agent
 
 The dataset does not directly record diagnostic action outcomes. Therefore, P(o∣H,E,a) was estimated using action-specific observable proxies derived from historical step and sub-category fields. Actions with weak proxies (e.g. comparison with a successful run, server/session state) have lower evidential validity. These probabilities are used for simulation, not claimed as directly observed action outcomes.
+
+
+
+### Evaluation & Baseline Comparison
+
+9.1 Evaluation Setup - 
+- The agent is evaluated under 40 test cases which were designed from the original dataset of 375 records. The 40 evaluation cases were held out from the data used to construct the agent's priors and outcome models, so they were not used during model construction or evaluation-policy design.
+
+9.2 Policies Compared-
+
+-The agent was compared against 3 policies
+a. Baseline - The probabilities were taken from the historical data from the dataset and there are no feedback loops or diagnostic actions as such.
+b. Cost Only - The agent chose actions purely based on the cost of the diagnostic action, and it ranks actions with lowest cost first, and performs those actions in order, the idea here is to perform low cost actions first because low cost actions do not require much time, but they might result in a significant information gain, so the stake is very reasonable here.
+c. EIG evaluation - The agent calculates the EIG for every action, and ranks the actions based on the EIG/cost ratio, this has proven to be the most accurate policy among the three. For each possible outcome of an action, the agent calculates the posterior distribution P(H∣E,o,a), computes the information gain produced by that outcome, and then takes the probability-weighted average over all possible outcomes to obtain EIG. Actions are ranked using EIG/cost. EIG (Expected Information Gain).
+
+
+9.3 Evaluation Results
+| Metric               |   EIG/cost | Cost-only | Baseline |
+| -------------------- | ---------: | --------: | -------: |
+| Accuracy             |    **55%** |       50% |      25% |
+| Macro Precision      | **65.23%** |    63.06% |    6.25% |
+| Macro Recall         |    **55%** |       50% |      25% |
+| Human-review rate    |    **35%** |     37.5% |       0% |
+| Avg. diagnostic cost |       6.46 |      6.93 |        0 |
+| Avg. actions         |       4.68 |      5.23 |        0 |
+| Report precision     |  **84.6%** |       80% |      25% |
+
+EIG/cost outperformed cost-only:
+- Accuracy: +5 pp
+- Macro precision: +2.17 pp
+- Macro recall: +5 pp
+- Human-review rate: -2.5 pp
+- Average diagnostic cost: 0.46 lower
+- Average actions: 0.55 fewer
+
+
+9.4 Failure Analysis
+
+I recorded 5 cases across 3 major patterns where the agent failed. 
+
+Case 1: confident but incorrect Dependency diagnosis.
+Case 3: misleading early evidence suppressed CI/Config and caused escalation.
+Case 4: CI/Config evidence moved the posterior in the right direction but never reached 90%.
+Case 9: CI/Config reached 88.3% but remained below the reporting threshold.
+Case 10: similar insufficient-confidence failure.
+
+(NOTE :- The case numbers correspond to the number(row) of the record that failed.)
+
+A major limitation is that both EIG and cost-only achieved 0% recall for Code on the evaluation set. This indicates that the current diagnostic outcome models do not adequately distinguish Code failures from other root causes.
+
+The three patterns : 
+1. Confident but incorrect diagnosis
+2. Misleading evidence suppressing the true root cause
+3. Correct evidence but insufficient confidence → escalation
+
+Analyzing the cost of each failure pattern : 
+ - Considering case 1, here the cost is pretty high because the agent was confident enough, but it wasn't pointing to the true root cause, this is a false positive, these kinds of failures are very expensive since the agent spent alot of time on performing actions but it ended up being confident towards the wrong root cause. In the Agent v1 this happend because the outcome models were mapped manually and the dataset of 375 records does not give us information on the outcome vs root cause probabilities, and hence the outcome models were simulated from the dataset.
+
+ - Case 3, 4 and 10, the agent failed because it encountered misleading evidence which resulted in the agent being confident in other root causes, and later when the agent came across the right evidence, the probability of the wrong root cause became so high that the confidence in the true root cause could not be recovered. This happend because there weren't enough evidences which strongly believed in the root cause, and even if there were, the outcomes of the model were calculated deterministically and not from the database which lead the agent to believe in the wrong thing, this failure has the right cause because the agent was converging to the right direction, but it did not have a strong enough evidence to recover.
+
+ - Case 9 where the agent could not meet the threshold of 90%, these failures occurred because the confidence could not reach >= 90%, the number 90% was decided on intuition and not on historical facts, Usually when the dataset is large enough, this threshold number can be derived from the dataset and we can obtain a more realistic threshold to report the root cause. The cost utilized here is effective, since the agent moved in the right direction but could not meet the threshold, in some cases the confidence reached to as close as 88%.
+
+
+9.5 Limitations
+
+- The evaluation uses only 40 held-out cases, so the reported metrics have substantial sampling uncertainty and should not be interpreted as statistically conclusive evidence of production performance.
+
+- The dataset does not directly contain diagnostic action outcomes. Therefore, P(o∣H,E,a) was estimated using action-specific proxies derived from historical dataset fields. The resulting outcome models are simulation assumptions rather than directly observed action probabilities.
+
+- The evaluation demonstrates performance under the constructed simulation environment; it does not establish production-level performance.
