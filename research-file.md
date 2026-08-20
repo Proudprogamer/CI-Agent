@@ -746,7 +746,6 @@ Analyzing the cost of each failure pattern :
 
 
 9.5 Limitations
-
 - The evaluation uses only 40 held-out cases, so the reported metrics have substantial sampling uncertainty and should not be interpreted as statistically conclusive evidence of production performance.
 
 - The dataset does not directly contain diagnostic action outcomes. Therefore, P(o∣H,E,a) was estimated using action-specific proxies derived from historical dataset fields. The resulting outcome models are simulation assumptions rather than directly observed action probabilities.
