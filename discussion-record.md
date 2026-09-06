@@ -103,3 +103,7 @@ These observations may be used to formulate future questions and hypotheses, but
 2. **State-Specific Thresholds ($p^*_i$):**
    - **Reason:** Replaced arbitrary 90% threshold with formal loss-matrix derivation: $p^*_i = C_{FP} / (C_{FP} + C_{FN})$.
    - **Result:** Low-risk remediation (Dependency, CI/Config) uses $p^* = 2.2\%$, while high-risk code changes require $p^* = 30.8\%$.
+
+3. **Information Divergence Metrics (KL & JSD):**
+   - **Reason:** Shannon entropy reduction (EIG) measures total uncertainty reduction but is blind to hypothesis flips (e.g. Code 90% -> Test 90%).
+   - **Implementation:** Added Kullback-Leibler (KL) divergence to track surprise in bits, and Jensen-Shannon Divergence (JSD) to log a symmetric, bounded (0.0 to 1.0) belief shift score after every diagnostic action.
