@@ -91,3 +91,15 @@ The following observations were found in public discussions but were not direct 
 \* Another practitioner emphasized considering the time and cost of diagnostic steps.
 
 These observations may be used to formulate future questions and hypotheses, but they are not treated as direct human responses in the discussion record.
+
+
+
+### Decision Log — Week 2 Extensions
+
+1. **5th State Addition (`Something else`):**
+   - **Reason:** To avoid zero-prior lock where out-of-distribution pipeline failures have $P(H)=0$ and can never be inferred.
+   - **Method:** Applied proportional smoothing with $\epsilon = 0.02$ (2% OOD prior baseline). Known historical priors scaled by 0.98.
+
+2. **State-Specific Thresholds ($p^*_i$):**
+   - **Reason:** Replaced arbitrary 90% threshold with formal loss-matrix derivation: $p^*_i = C_{FP} / (C_{FP} + C_{FN})$.
+   - **Result:** Low-risk remediation (Dependency, CI/Config) uses $p^* = 2.2\%$, while high-risk code changes require $p^* = 30.8\%$.
