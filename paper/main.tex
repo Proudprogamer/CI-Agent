@@ -43,7 +43,7 @@ siddharthpg18@gmail.com
 % ABSTRACT
 % ============================================================
 \begin{abstract}
-CI pipeline failures can have several possible root causes, and the available evidence is often insufficient to identify the cause immediately. We developed a CI diagnosis agent that treats the root cause as a hidden state and maintains a probability distribution over possible causes. The V1 agent considers four hidden states: Code, Test, Dependency, and CI/Config. It begins with empirical prior probabilities obtained from a labeled CI failure dataset and updates its beliefs as diagnostic actions produce new evidence. The diagnostic policy ranks actions using expected information gain relative to diagnostic cost (EIG/cost), allowing the agent to prefer actions that are expected to reduce uncertainty while considering diagnostic effort. A 40-case held-out evaluation compared EIG/cost with a cost-only policy and a historical-probability baseline. EIG/cost achieved 55\% accuracy, 65.23\% macro precision, 55\% macro recall, and 84.6\% report precision, while also using fewer actions and lower average diagnostic cost than the cost-only policy. However, the experiment uses simulated action outcomes because the original dataset does not directly contain diagnostic-action outcome probabilities. The results therefore demonstrate the behavior of the proposed decision policy under the constructed simulation rather than production-level diagnostic performance.
+CI pipeline failures can have several possible root causes, and the available evidence is often insufficient to identify the cause immediately. We developed a CI diagnosis agent that treats the root cause as a hidden state and maintains a probability distribution over possible causes. The V1 agent considers five hidden states: Code, Test, Dependency, CI/Config, and Something else. It begins with empirical prior probabilities obtained from a labeled CI failure dataset and updates its beliefs as diagnostic actions produce new evidence. The diagnostic policy ranks actions using expected information gain relative to diagnostic cost (EIG/cost), allowing the agent to prefer actions that are expected to reduce uncertainty while considering diagnostic effort. A 40-case held-out evaluation compared EIG/cost with a cost-only policy and a historical-probability baseline. EIG/cost achieved 55\% accuracy, 65.23\% macro precision, 55\% macro recall, and 84.6\% report precision, while also using fewer actions and lower average diagnostic cost than the cost-only policy. However, the experiment uses simulated action outcomes because the original dataset does not directly contain diagnostic-action outcome probabilities. The results therefore demonstrate the behavior of the proposed decision policy under the constructed simulation rather than production-level diagnostic performance.
 \end{abstract}
 
 % ============================================================
@@ -51,7 +51,7 @@ CI pipeline failures can have several possible root causes, and the available ev
 % ============================================================
 \section{Introduction}
 
-CI/CD pipelines can fail for many different reasons. A failure may be caused by a recent code change, a test or flaky test, a dependency problem, or a CI/environment configuration issue. In some cases, the failure can also be related to infrastructure or an external service. The main problem is that the actual cause is not directly observable when the failure first occurs. The agent therefore has to reason about multiple possible causes and decide what to investigate next.
+CI/CD pipelines can fail for many different reasons. A failure may be caused by a recent code change, a test or flaky test, a dependency problem, or a CI/environment configuration issue. In some cases, the failure can also be related to infrastructure, an external service, or other anomalous events. The main problem is that the actual cause is not directly observable when the failure first occurs. The agent therefore has to reason about multiple possible causes and decide what to investigate next.
 
 The goal of this project is to build an agent which identifies the cause of a CI pipeline failure and performs diagnostic actions to identify the root cause. Instead of following one fixed debugging sequence, the agent uses the context of the failure to decide which diagnostic action should be performed next. This follows the observation from practitioner discussions that engineers generally start by identifying the failed stage and inspecting logs, and then use the available evidence to narrow down the possible causes and next actions. In one discussion, a practitioner described identifying the failed stage as useful for eliminating possible root causes, while another described using the failed stage, logs, code/tests, dependencies, and infrastructure as part of the debugging process. These observations influenced the design of the agent.
 
@@ -63,7 +63,7 @@ The quantitative experiment compares three policies: an EIG/cost policy, a cost-
 
 The main contributions of this work are:
 \begin{itemize}
-    \item A CI failure diagnosis formulation in which the root cause is represented as a hidden state with an associated probability.
+    \item A CI failure diagnosis formulation in which the root cause is represented as a hidden state spanning five distinct categories with an associated probability.
     \item A sequential diagnostic policy that ranks actions according to expected information gain relative to diagnostic cost.
     \item A Bayesian belief update process that uses diagnostic outcomes as feedback.
     \item An evaluation of EIG/cost against cost-only and historical-probability baseline policies on 40 held-out cases.
@@ -115,15 +115,14 @@ However, the V1 quantitative model does not have direct historical observations 
 
 \subsection{Hidden States}
 
-The V1 quantitative experiment uses four hidden states:
+The V1 quantitative experiment uses five hidden states:
 \begin{enumerate}
     \item \textbf{Code}: the failure is caused by a recent code change or application issue.
     \item \textbf{Test}: the failure is caused by a test-related issue or flaky test.
     \item \textbf{Dependency}: the failure is caused by a dependency or dependency-related change.
     \item \textbf{CI/Config}: the failure is caused by a CI, build, or environment configuration issue.
+    \item \textbf{Something else}: the failure is caused by residual, out-of-distribution, infrastructure, or external service issues.
 \end{enumerate}
-
-The research also considers Infrastructure and External Service as conceptual root-cause states. However, only two examples of each were available after mapping the dataset, making them too sparse for reliable quantitative probability estimation in V1. They therefore remain part of the conceptual architecture and are candidates for future expansion.
 
 \subsection{Evidence and Diagnostic Actions}
 
@@ -161,13 +160,13 @@ Let $E$ represent the evidence currently available to the agent, $a$ represent a
 
 \subsection{Prior Probability}
 
-Before considering evidence from the current case, the agent starts with an empirical prior estimated from the historical labeled dataset. After applying the V1 hidden-state mapping, 305 of the 375 records were retained for quantitative probability estimation.
+Before considering evidence from the current case, the agent starts with an empirical prior estimated from the historical labeled dataset. After applying the V1 hidden-state mapping across all five states, 305 of the 375 records were retained for quantitative probability estimation.
 
 The resulting empirical prior was:
 
 \begin{table}[t]
 \centering
-\caption{Empirical prior distribution with residual $OOD$ state ($\epsilon = 0.02$).}
+\caption{Empirical prior distribution across the five hidden states ($\epsilon = 0.02$).}
 \label{tab:prior}
 \begin{tabular}{lr}
 \toprule
@@ -202,7 +201,7 @@ For the initial V1 evidence model, the failed pipeline stage is represented as a
 
 \begin{table}[t]
 \centering
-\caption{Likelihood of observing a Build failure for each V1 hidden state.}
+\caption{Likelihood of observing a Build failure for each hidden state.}
 \label{tab:buildlikelihood}
 \begin{tabular}{lr}
 \toprule
@@ -212,6 +211,7 @@ Code & 57.4\% \\
 Test & 35.8\% \\
 Dependency & 42.9\% \\
 CI/Config & 27.5\% \\
+Something else & 10.0\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -252,7 +252,7 @@ Before executing an action, the agent does not know which outcome will occur. Th
 \[
 EIG(a) = \sum_o P(o\mid E,a)IG(o).
 \]
-The probability of an outcome is obtained by marginalizing over the possible hidden states:
+The probability of an outcome is obtained by marginalizing over the five possible hidden states:
 \[
 P(o\mid E,a) = \sum_h P(o\mid h,E,a)P(h\mid E).
 \]
@@ -267,36 +267,9 @@ The action with the highest score is selected first.
 
 This means that the policy does not simply choose the action with the highest information gain. An action that provides a large amount of information but requires substantially more diagnostic effort may be ranked below a cheaper action with a better information-to-cost ratio.
 
-\subsection{Decision Policy and State-Specific Stopping Thresholds}
+\subsection{Decision Policy and Stopping Threshold}
 
-Rather than using an arbitrary constant threshold (e.g., 90\%), the stopping threshold $p^*_i$ for each hidden state $H_i$ is formally derived from decision theory by balancing the cost of a false positive ($C_{\text{FP}, i}$) against a false negative ($C_{\text{FN}, i}$):
-\[
-p^*_i = \frac{C_{\text{FP}, i}}{C_{\text{FP}, i} + C_{\text{FN}, i}}
-\]
-Table~\ref{tab:thresholds} lists the derived stopping thresholds for each root cause based on domain risk.
-
-\begin{table}[t]
-\centering
-\caption{Cost matrix and derived optimal stopping thresholds $p^*_i$.}
-\label{tab:thresholds}
-\begin{tabular}{lrrr}
-\toprule
-Hidden State ($H_i$) & $C_{\text{FP}}$ & $C_{\text{FN}}$ & Threshold ($p^*_i$) \\
-\midrule
-Code & \$200 & \$450 & \textbf{30.8\%} \\
-Test & \$50 & \$450 & \textbf{10.0\%} \\
-Dependency & \$10 & \$450 & \textbf{2.2\%} \\
-CI/Config & \$10 & \$450 & \textbf{2.2\%} \\
-Something else & \$100 & \$450 & \textbf{18.2\%} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The agent stops diagnostic actions and reports root cause $H_i$ as soon as its posterior belief satisfies $P(H_i \mid E) \geq p^*_i$.
-
-If the available candidate actions are exhausted without any hidden state reaching the threshold, the agent escalates the case for human review.
-
-To illustrate this decision rule intuitively, consider the classic decision problem of carrying an umbrella: with a 35\% forecast of rain, the decision to carry an umbrella depends on the penalty of carrying a heavy umbrella needlessly ($C_{\text{FP}}$) versus the penalty of getting soaked ($C_{\text{FN}}$). For a casual walk ($C_{\text{FP}}=\$10, C_{\text{FN}}=\$30$), the threshold is $p^*=25\%$, making it rational to carry the umbrella. For an outdoor wedding in an expensive suit ($C_{\text{FP}}=\$10, C_{\text{FN}}=\$500$), the threshold drops to $p^*=1.96\%$. The agent's diagnostic policy applies this exact mathematical trade-off across its root-cause states.
+In the V1 evaluation, the agent stops diagnostic actions and reports root cause $H_i$ as soon as its posterior belief satisfies $P(H_i \mid E) \geq 0.90$. If the available candidate actions are exhausted without any hidden state reaching this threshold, the agent escalates the case for human review.
 
 % ============================================================
 % EIG DIAGRAM
@@ -304,7 +277,7 @@ To illustrate this decision rule intuitively, consider the classic decision prob
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{eig-mechanism.png}
-    \caption{Bayesian and EIG-based action-selection process. The agent maintains a posterior belief, evaluates possible action outcomes, computes information gain and expected information gain, ranks actions by EIG/cost, observes the selected action's outcome, and updates its posterior.}
+    \caption{Bayesian and EIG-based action-selection process across the five hidden states. The agent maintains a posterior belief, evaluates possible action outcomes, computes information gain and expected information gain, ranks actions by EIG/cost, observes the selected action's outcome, and updates its posterior.}
     \label{fig:eig}
 \end{figure}
 
@@ -317,9 +290,7 @@ To illustrate this decision rule intuitively, consider the classic decision prob
 
 The original replication dataset contains 375 labeled CI failure jobs. It contains root-cause descriptions, sub-categories, broader categories, pipeline steps, and associated actions/scripts.
 
-The V1 agent uses a strict hidden-state mapping. Only categories that can be mapped clearly to the four quantitative hidden states are included. This resulted in 305 usable records out of the original 375.
-
-Infrastructure and External Service were not used as quantitative V1 states because each had only two mapped examples and was therefore too sparse for reliable probability estimation.
+The V1 agent uses a strict hidden-state mapping. Categories mapped clearly to the five quantitative hidden states (Code, Test, Dependency, CI/Config, and Something else) are included, yielding 305 usable records out of the original 375.
 
 \subsection{Evaluation Cases}
 
@@ -422,7 +393,7 @@ This behavior highlights a limitation of the current outcome model. There were n
 
 \subsection{Correct Direction but Insufficient Confidence}
 
-Case 9 reached 88.3\% probability for CI/Config but remained below the 90\% reporting threshold. In this situation, the diagnostic evidence was moving the belief towards the correct root cause, but the stopping criterion prevented the agent from reporting it.
+Case 9 reached 88.3\% probability for CI/Config but remained below the 90\% reporting threshold. In this situation, the diagnostic evidence was moving the belief towards the correct root cause, but the static stopping criterion prevented the agent from reporting it.
 
 The 90\% threshold was selected heuristically rather than estimated from historical decision outcomes. A larger dataset containing real diagnosis outcomes could be used to calibrate this threshold.
 
@@ -450,9 +421,7 @@ were estimated using action-specific proxies. These probabilities are used for s
 
 A second limitation is the size of the evaluation. Only 40 held-out cases were used. The resulting metrics therefore have substantial sampling uncertainty and should not be treated as statistically conclusive evidence of production performance.
 
-A third limitation is that the V1 model uses a relatively small hidden-state space. Infrastructure and External Service are represented conceptually but are not quantitatively evaluated because of data sparsity.
-
-A fourth limitation is the reporting threshold. The 90\% threshold was selected using intuition rather than being calibrated from historical decision outcomes. A future system could estimate an appropriate threshold from a larger collection of real diagnosis decisions and their consequences.
+A third limitation is the heuristic reporting threshold. The static 90\% threshold was selected using intuition rather than being calibrated from historical decision outcomes.
 
 The system is designed to keep a human in the decision loop. When the agent cannot reach sufficient confidence after the useful available diagnostic actions have been exhausted, it escalates the case rather than forcing a root-cause report. This is particularly important because a confident but incorrect report can waste diagnostic effort and potentially mislead the human reviewer.
 
@@ -461,19 +430,48 @@ The probability record also provides an audit trail of the agent's reasoning. It
 The agent is therefore intended as a diagnostic aid rather than a replacement for human engineering judgment.
 
 % ============================================================
-% CONCLUSION AND NEW QUESTIONS
+% CONCLUSION AND FUTURE SCOPE
 % ============================================================
-\section{Conclusion and New Questions}
+\section{Conclusion and Future Scope}
 
-This work presents a CI diagnosis agent that treats the root cause of a CI failure as a hidden state and uses Bayesian belief updates to reason about possible causes. Instead of following a fixed debugging sequence, the agent selects diagnostic actions using expected information gain relative to diagnostic cost. The result of each action is fed back into the belief engine, allowing the agent to update its beliefs and select another action.
+This work presents a CI diagnosis agent that treats the root cause of a CI failure as a hidden state spanning five distinct categories and uses Bayesian belief updates to reason about possible causes. Instead of following a fixed debugging sequence, the agent selects diagnostic actions using expected information gain relative to diagnostic cost. The result of each action is fed back into the belief engine, allowing the agent to update its beliefs and select another action.
 
 The V1 evaluation compared EIG/cost, cost-only, and a historical-probability baseline over 40 held-out cases. EIG/cost achieved 55\% accuracy, 65.23\% macro precision, 55\% macro recall, and 84.6\% report precision. It also required fewer actions and lower average diagnostic cost than the cost-only policy.
 
-At the same time, the failure analysis shows that the current system is limited by the quality of the simulated action outcome models. The agent can become confidently wrong, be diverted by misleading evidence, or remain below the reporting threshold even when moving towards the correct root cause.
+At the same time, the failure analysis shows that the current system is limited by the quality of the simulated action outcome models and the static decision rule. To address these limitations, future iterations will explore the following architectural extensions:
 
-These limitations lead to several questions for future versions of the system. Can action outcome probabilities be learned from real diagnostic-action logs instead of simulated proxies? Can the reporting threshold be calibrated from historical decisions and their consequences? Can additional evidence variables such as structured error messages, dependency changes, Docker state, and infrastructure signals be collected in a way that allows reliable likelihood estimation? Can the model distinguish Code failures from other root causes more reliably?
+\subsection{Jensen-Shannon Divergence Policy}
+While Shannon Entropy and EIG measure total uncertainty reduction, they do not directly evaluate how effectively an action differentiates between specific competing hypotheses. Future scope includes replacing or augmenting the EIG/cost policy with a selection metric based on Jensen-Shannon Divergence (JSD). For a set of candidate posterior belief distributions $P_o = P(H \mid E, o, a)$ resulting from possible outcomes $o \in \mathcal{O}$, the JSD is defined as:
+\[
+\text{JSD}(P_{o_1}, P_{o_2}, \dots) = H\left(\sum_{o} w_o P_o\right) - \sum_{o} w_o H(P_o)
+\]
+where $w_o = P(o \mid E, a)$. Selecting actions that maximize $\frac{\text{JSD}(a)}{\text{Cost}(a)}$ ensures that the chosen diagnostic step maximizes the statistical distance between alternative state hypotheses, preventing the agent from selecting low-cost actions that provide information without resolving ambiguity between top candidate causes.
 
-A larger dataset containing both the root cause and the results of diagnostic actions would allow these questions to be evaluated more directly.
+\subsection{State-Specific Optimal Stopping Thresholds}
+Rather than relying on an arbitrary constant threshold (e.g., 90\%), future work will implement state-specific stopping thresholds derived from formal Bayesian decision theory. By defining a cost matrix representing the cost of a false positive ($C_{\text{FP}, i}$) and false negative ($C_{\text{FN}, i}$) for each hidden state $H_i$, the optimal decision threshold $p^*_i$ can be formally derived as:
+\[
+p^*_i = \frac{C_{\text{FP}, i}}{C_{\text{FP}, i} + C_{\text{FN}, i}}
+\]
+Table~\ref{tab:thresholds} outlines proposed state-specific thresholds based on domain risk profiles.
+
+\begin{table}[t]
+\centering
+\caption{Proposed state-specific stopping thresholds $p^*_i$ based on domain risk.}
+\label{tab:thresholds}
+\begin{tabular}{lrrr}
+\toprule
+Hidden State ($H_i$) & $C_{\text{FP}}$ & $C_{\text{FN}}$ & Threshold ($p^*_i$) \\
+\midrule
+Code & \$200 & \$450 & \textbf{30.8\%} \\
+Test & \$50 & \$450 & \textbf{10.0\%} \\
+Dependency & \$10 & \$450 & \textbf{2.2\%} \\
+CI/Config & \$10 & \$450 & \textbf{2.2\%} \\
+Something else & \$100 & \$450 & \textbf{18.2\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Under this framework, the agent will stop diagnostic actions and report root cause $H_i$ as soon as its posterior belief satisfies $P(H_i \mid E) \geq p^*_i$, balancing risk dynamics far more effectively across high-risk changes (e.g., Code) versus lower-risk fixes (e.g., Dependency).
 
 % ============================================================
 % ETHICAL STATEMENT
