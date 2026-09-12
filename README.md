@@ -42,9 +42,7 @@ $$
 
 The agent maintains:
 
-$$
-P(H \mid E)
-$$
+$$P(H \mid E)$$
 
 where:
 
