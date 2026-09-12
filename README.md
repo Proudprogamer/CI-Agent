@@ -177,8 +177,7 @@ These probabilities describe the included subset of the dataset and are not inte
 
 After an action produces an observation, the agent applies Bayes' rule:
 
-$$
-P(H \mid E,o,a)$$
+$$P(H \mid E,o,a)$$
 =
 $$
 \frac{P(o \mid H,E,a)P(H \mid E)}
