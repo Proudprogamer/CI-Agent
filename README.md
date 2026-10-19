@@ -216,41 +216,35 @@ Updated posterior
 
 The uncertainty of the current belief distribution is measured using Shannon entropy:
 
-$$
-H(H \mid E)
+$$H(H \mid E)$$
 =
--\sum_h P(h \mid E)\log P(h \mid E)
-$$
+$$-\sum_h P(h \mid E)\log P(h \mid E)$$
 
 For a particular action outcome, information gain is the reduction in entropy:
 
-$$
-IG(o)
+$$IG(o)$$
 =
 H(H \mid E)
 -
 H(H \mid E,o,a)
-$$
+
 
 An outcome is therefore informative when it substantially reduces uncertainty about the root cause.
 
 Before executing an action, the agent does not know which outcome will occur. It therefore calculates **Expected Information Gain (EIG)**:
 
-$$
-EIG(a)
+$$EIG(a)$$
 =
-\sum_o
-P(o \mid E,a)IG(o)
-$$
+$$\sum_o$$
+$$P(o \mid E,a)IG(o)$$
+
 
 with:
 
-$$
-P(o \mid E,a)
+$$P(o \mid E,a)$$
 =
-\sum_h
-P(o \mid h,E,a)P(h \mid E)
-$$
+$$\sum_h$$
+$$P(o \mid h,E,a)P(h \mid E)$$
 
 ---
 
@@ -260,11 +254,9 @@ The V1 diagnostic policy combines information gain with diagnostic effort.
 
 For each available action:
 
-$$
-Score(a)
+$$Score(a)$$
 =
-\frac{EIG(a)}{Cost(a)}
-$$
+$$\frac{EIG(a)}{Cost(a)}$$
 
 The action with the highest score is selected.
 
@@ -326,9 +318,7 @@ The actions are **not executed in a fixed order**. Their ranking depends on the 
 
 The V1 system reports a root cause when:
 
-$$
-P(H_i \mid E) \geq 0.90
-$$
+$$P(H_i \mid E) \geq 0.90$$
 
 If useful candidate actions are exhausted without reaching this threshold, the case is escalated for human review.
 
@@ -365,9 +355,7 @@ Ranks diagnostic actions according to diagnostic cost and performs lower-cost ac
 
 Ranks actions using:
 
-$$
-\frac{EIG(a)}{Cost(a)}
-$$
+$$\frac{EIG(a)}{Cost(a)}$$
 
 After each action, its outcome is incorporated into the posterior and the remaining actions are re-evaluated.
 
@@ -444,9 +432,7 @@ The dataset contains labeled CI failures, but it does not directly record what w
 
 However, EIG requires probabilities of the form:
 
-$$
-P(o \mid H,E,a)
-$$
+$$P(o \mid H,E,a)$$
 
 Therefore, V1 estimates these probabilities using **action-specific observable proxies derived from historical step and sub-category fields**.
 
@@ -494,9 +480,9 @@ For possible posterior distributions $P_o$:
 
 $$JSD(P_{o_1},P_{o_2},\ldots)$$
 =
-H\left(\sum_o w_oP_o\right)
+$$H\left(\sum_o w_oP_o\right)$$
 -
-\sum_o w_oH(P_o)
+$$\sum_o w_oH(P_o)$$
 
 where:
 
