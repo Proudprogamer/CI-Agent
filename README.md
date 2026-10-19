@@ -493,12 +493,11 @@ The motivation is that entropy/EIG measures overall uncertainty reduction, while
 For possible posterior distributions $P_o$:
 
 $$
-JSD(P_{o_1},P_{o_2},\ldots)
+JSD(P_{o_1},P_{o_2},\ldots)$$
 =
 H\left(\sum_o w_oP_o\right)
 -
-\sum_o w_oH(P_o)
-$$
+$$\sum_o w_oH(P_o)$$
 
 where:
 
@@ -508,9 +507,7 @@ $$
 
 A future policy can investigate:
 
-$$
-\frac{JSD(a)}{Cost(a)}
-$$
+$$\frac{JSD(a)}{Cost(a)}$$
 
 as an alternative or complement to EIG/cost.
 
@@ -522,11 +519,8 @@ Instead of using a fixed 90% threshold for every root cause, future work propose
 
 For hidden state $H_i$:
 
-$$
-p_i^*
-=
-\frac{CFP_i}{CFP_i+CFN_i}
-$$
+
+$$p_i^*$$=$$\frac{CFP_i}{CFP_i+CFN_i}$$
 
 This allows different root causes to have different decision thresholds based on their domain risk.
 
