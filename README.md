@@ -492,12 +492,11 @@ The motivation is that entropy/EIG measures overall uncertainty reduction, while
 
 For possible posterior distributions $P_o$:
 
-$$
-JSD(P_{o_1},P_{o_2},\ldots)$$
+$$JSD(P_{o_1},P_{o_2},\ldots)$$
 =
 H\left(\sum_o w_oP_o\right)
 -
-$$\sum_o w_oH(P_o)$$
+\sum_o w_oH(P_o)
 
 where:
 
